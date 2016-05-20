@@ -1,0 +1,177 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<!--[if lt IE 7 ]> <html lang="en" class="ie ie6"> <![endif]-->
+<!--[if IE 7 ]> <html lang="en" class="ie ie7"> <![endif]-->
+<!--[if IE 8 ]> <html lang="en" class="ie ie8"> <![endif]-->
+<!--[if IE 9 ]> <html lang="en" class="ie ie9"> <![endif]-->
+<!--[if (gt IE 9)|!(IE)]><!-->
+<html lang="en">
+<!--<![endif]-->
+<head>
+  <title>ECERF DataPort Map</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+  <link rel="shortcut icon" href="{% static 'images/dataport.ico' %}" type="image/x-icon">
+  <link rel="icon" href="{% static 'images/dataport.ico' %}" type="image/x-icon">
+  <link rel="stylesheet" href="{% static 'css/site.css' %}" type="text/css">
+</head>
+<body>
+<table style="margin: 0px; width: 100%;">
+  <tr>
+    <td ><h1> Data Port Map for ECERF! </h1> </td>
+    <td ><a href="{% url 'addNode' %}" class="top-menu"><span class="glyphicon glyphicon-plus"></span> Add Path Node</a></td>
+  </tr>
+</table>  
+<div class="container-fluid">
+  <div class="col-sm-3 col-md-2 sidebar">
+    <ul class="nav nav-sidebar">
+      <li><a id="3" class="router" data-toggle="pill" href="#Level3"><h2>Level 3</h2></a></li>
+      <li><a id="4" class="router" data-toggle="pill" href="#Level4"><h2>Level 4</h2></a></li>
+      <li><a id="5" class="router" data-toggle="pill" href="#Level5"><h2>Level 5</h2></a></li>
+    </ul>
+  </div>
+  <div class="tab-content col-sm-9 col-md-10">
+    <div class="row">
+      <form class="search navbar-form navbar-left" method='post'>
+        {% csrf_token %}
+        <label>Please Input Data Port #: D-</label>
+        <input type="hidden" id="floor" name="floor" class="form-control" {% if NetworkPort.floor %} value={{ NetworkPort.floor }} {% else %} value="3" {% endif %}>
+        <input type="number" name="port" id="port" class="form-control" placeholder="Search..." min="1" required="true" autofocus>
+        <input type="hidden" name="form_name" value="dp_Search">
+        <input class="btn btn-primary" type='submit' name="submit" value="Search selected level">
+      </form>
+      <form id="room_search" class="search navbar-form navbar-left" method='post'>
+        {% csrf_token %}
+        <label>Please Input Room #:</label>
+        <input type="text" name="search_room" id="search_room" class="form-control" placeholder="Search... eg: w3-010" required="true">
+        <input type="hidden" name="form_name" value="room_Search">
+        <input class="btn btn-primary" type='submit' name="submit" value="Search room">
+      </form>
+    </div>
+    
+    <div id='data_set' class="col-sm-4 panel panel-primary" {% if NetworkPort == None and searchError == None %} style="display: none;" {% endif %}>
+      <div class="panel-body">
+        {% if searchError != None %}
+          <h2 style="color: red">{{ searchError }}</h2>
+
+        {% else %}
+          {% if NetworkPort.port < 10 %}
+            <h2>Data Port: D-00{{ NetworkPort.port }}</h2>
+          {% elif NetworkPort.port < 100 %}
+            <h2>Data Port: D-0{{ NetworkPort.port }}</h2>
+          {% else %}
+            <h2>Data Port: D-{{ NetworkPort.port }}</h2>
+          {% endif %}
+          <h2>Level: {{ NetworkPort.floor }}</h2>
+          <h2>Room: {{ NetworkPort.room|capfirst }}</h2>
+          <h2>Section: {{ NetworkPort.section|capfirst }}</h2>
+          <ul class="context_list" style="display: none;">
+            <li id="port" class="port_data">{{ NetworkPort.port }}</li>
+            <li id="floor" class="port_data">{{ NetworkPort.floor }}</li>
+            <li id="x_coord" class="port_data">{{ NetworkPort.x_coord }}</li>
+            <li id="y_coord" class="port_data">{{ NetworkPort.y_coord }}</li>
+          </ul>
+          <div class='row' style="min-height: 60px;">
+            <div class='col-xs-3' >
+              <button type="button" id="update" class="btn btn-primary" style="width: 100px;">Update</button>
+            </div>
+            <div class='col-xs-9'>
+              <form id="update_form" class="navbar-form navbar-right" method='post' style="display: none;">
+                {% csrf_token %}
+                <input type="hidden" name="port" class="form-control" value={{ NetworkPort.port }}>
+                <input type="hidden" name="floor" class="form-control" value={{ NetworkPort.floor }}>
+                <input type="text" name="x_update" id="x_update" class="form-control" placeholder="x..." value={{ NetworkPort.x_coord }}>
+                <input type="text" name="y_update" id="y_update" class="form-control" placeholder="y..." value={{ NetworkPort.y_coord }}>
+                <input name="form_name" value="dp_Update">
+              </form>
+            </div>
+          </div>
+
+          {% if path_list != None %}
+            <h4 id = "nodenum" style="display: none;">{{ path_list|length }} </h4>
+            <table id = "pathlist" border="1" style="display: none;">
+              {% for node in path_list %}
+                <tr> 
+                  <td> {{ forloop.counter }}</td>
+                  <td id="{{ forloop.counter }}x" > {{ node.x_coord }} </td>
+                  <td id="{{ forloop.counter }}y" > {{ node.y_coord }} </td>
+                </tr>
+              {% endfor %} 
+            </table>
+          {% else %}
+              <h4 style="color: red"> No path to this Data Port, Please add edge in Admin page!</h4>  
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div id='room_port_list' class="col-sm-3 panel panel-info" {% if port_list == None %} style="display: none;" {% endif %}>
+      <div class="panel-heading text-center">Data Port List</div>
+      <div class="panel-body">      
+        <h4 id = "port_num" style="display: none;">{{ port_list|length }} </h4>
+        {% if port_list|length > 0 %}
+          <h4 id = "room_floor" style="display: none;">{{ port_list.first.floor }} </h4>
+        {% endif %}
+        <table class="table table-striped " style="display: block;">
+          <thead>
+            <tr>
+            <th>#</th>
+            <th>Room</th>
+            <th>Port #</th>
+            <th>Section</th>
+            <th style="display: none;">x_coord</th>
+            <th style="display: none;">y_coord</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for port in port_list %}           
+            <tr> 
+              <td> {{ forloop.counter }}</td>
+              <td id="{{ forloop.counter }}room" > {{ port.room }} </td>
+              {% if port.port < 10 %}
+                <td id="{{ forloop.counter }}port" > D-00{{ port.port }} </td>
+              {% elif port.port < 100 %}
+                <td id="{{ forloop.counter }}port" > D-0{{ port.port }} </td>
+              {% else %}
+                <td id="{{ forloop.counter }}port" > D-{{ port.port }} </td>
+              {% endif %}
+              <td id="{{ forloop.counter }}section" > {{ port.section }} </td>
+              <td id="{{ forloop.counter }}x" style="display: none;"> {{ port.x_coord }} </td>
+              <td id="{{ forloop.counter }}y" style="display: none;"> {{ port.y_coord }} </td>
+            </tr>
+          {% endfor %} 
+          </tbody>
+        </table>
+      </div>  
+    </div>
+        
+    <div id="Level3" class="col-sm-8 tab-pane fade">
+      <canvas id="canvas3" class="map" width='677' height='1040'></canvas>
+      <div id="marker3" class="marker glyphicon glyphicon-remove-circle"></div>
+    </div>
+    <div id="Level4" class="col-sm-8 tab-pane fade">
+      <canvas id="canvas4" class="map" width='677' height='1040'></canvas>
+      <div id="marker4"class="marker glyphicon glyphicon-remove-circle"></div>
+    </div>
+    <div id="Level5" class="col-sm-8 tab-pane fade">
+       <canvas id="canvas5" class="map" width='677' height='1040'></canvas>
+      <div id="marker5"class="marker glyphicon glyphicon-remove-circle"></div>
+    </div>
+  </div>
+</div>
+
+<div class="static-images" style="display: none;">
+  <img id="image3" class="map" width='637' height='1000' src="{% static 'images/ECERF3_DataPort.png' %}">
+  <img id="image4" class="map" src="{% static 'images/ECERF4_DataPort.png' %}" height=1000 width=637>
+  <img id="image5" class="map" src="{% static 'images/ECERF5_DataPort.png' %}" height=1000 width=637>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+<script src="{% static 'js/maps.js' %}"></script>
+<script src="{% static 'js/ui.js' %}"></script>
+<script src="{% static 'js/jqueryForm.js' %}"></script>
+
+</body>
+</html>

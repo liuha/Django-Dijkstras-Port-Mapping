@@ -1,0 +1,25 @@
+#copy node name, floor, x, y from maps_networkport:
+
+insert into maps_node (name, floor, x_coord, y_coord) select port || "_" || section as name, floor, x_coord, y_coord from maps_networkport
+
+
+
+#update node name, floor, x, y using maps_networkport column:
+
+
+update maps_node
+set 
+ x_coord = ( select maps_networkport.x_coord from maps_networkport where (maps_networkport. port || "_" || maps_networkport.section = maps_node.name) and maps_networkport.floor = maps_node.floor), 
+ y_coord = ( select maps_networkport.y_coord from maps_networkport where (maps_networkport. port || "_" || maps_networkport.section = maps_node.name) and maps_networkport.floor = maps_node.floor)
+where
+ exists ( select * from maps_networkport where (maps_networkport. port || "_" || maps_networkport.section = maps_node.name) and maps_networkport.floor = maps_node.floor)
+
+
+#update node name : floor_dataport
+
+
+ update maps_node
+set 
+ name= ( select maps_networkport. floor || "_" || maps_networkport.port  from maps_networkport where (maps_networkport. port || "_" || maps_networkport.section = maps_node.name) and maps_networkport.floor = maps_node.floor)
+where
+ exists ( select * from maps_networkport where (maps_networkport. port || "_" || maps_networkport.section = maps_node.name) and maps_networkport.floor = maps_node.floor)
